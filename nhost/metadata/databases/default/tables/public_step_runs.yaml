@@ -1,0 +1,39 @@
+table:
+  schema: public
+  name: step_runs
+object_relationships:
+  - name: workflow_run
+    using:
+      foreign_key_constraint_on: workflow_run_id
+  - name: workflow_step
+    using:
+      foreign_key_constraint_on: workflow_step_id
+# No insert/update/delete permissions for role "user": step_runs (status,
+# output, approved_by, approved_at) is written exclusively by the backend
+# workflow engine and the approveStep Action, using the admin secret. If a
+# client could UPDATE this table directly, they could forge their own
+# approval - the approveStep Action is what performs that check instead.
+select_permissions:
+  - role: user
+    permission:
+      columns:
+        - id
+        - workflow_run_id
+        - workflow_step_id
+        - status
+        - input
+        - output
+        - error
+        - attempt_count
+        - approved_by
+        - approved_at
+        - started_at
+        - completed_at
+        - created_at
+      filter:
+        workflow_run:
+          workflow:
+            organization:
+              members:
+                user_id:
+                  _eq: X-Hasura-User-Id

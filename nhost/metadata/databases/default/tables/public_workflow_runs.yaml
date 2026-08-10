@@ -1,0 +1,38 @@
+table:
+  schema: public
+  name: workflow_runs
+object_relationships:
+  - name: workflow
+    using:
+      foreign_key_constraint_on: workflow_id
+array_relationships:
+  - name: step_runs
+    using:
+      foreign_key_constraint_on:
+        column: workflow_run_id
+        table:
+          schema: public
+          name: step_runs
+# No insert/update/delete permissions for role "user": workflow_runs is
+# written exclusively by the backend (triggerWorkflowRun / the executor)
+# using the admin secret, never directly by client mutations. This is what
+# stops a client from forging its own "completed" run or bypassing quota.
+select_permissions:
+  - role: user
+    permission:
+      columns:
+        - id
+        - workflow_id
+        - status
+        - trigger_type
+        - triggered_by
+        - started_at
+        - completed_at
+        - error
+        - created_at
+      filter:
+        workflow:
+          organization:
+            members:
+              user_id:
+                _eq: X-Hasura-User-Id

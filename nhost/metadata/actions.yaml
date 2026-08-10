@@ -1,0 +1,49 @@
+# None of these actions set forward_client_headers - deliberately. The
+# handlers only ever read `session_variables` (which Hasura always includes
+# in the action payload regardless of this setting) plus our own
+# X-Hasura-Action-Secret below. Forwarding the original browser request's
+# headers - including its Content-Length - onto a differently-sized action
+# envelope body can make the backend's body parser wait forever for bytes
+# that never arrive, hanging the request with no error on either side.
+actions:
+  - name: triggerWorkflowRun
+    definition:
+      kind: synchronous
+      handler: "{{ACTIONS_BASE_URL}}/actions/triggerWorkflowRun"
+      headers:
+        - name: X-Hasura-Action-Secret
+          value_from_env: HASURA_ACTION_SECRET
+      timeout: 60
+    permissions:
+      - role: user
+  - name: approveStep
+    definition:
+      kind: synchronous
+      handler: "{{ACTIONS_BASE_URL}}/actions/approveStep"
+      headers:
+        - name: X-Hasura-Action-Secret
+          value_from_env: HASURA_ACTION_SECRET
+      timeout: 30
+    permissions:
+      - role: user
+  - name: lookupUserByEmail
+    definition:
+      kind: synchronous
+      handler: "{{ACTIONS_BASE_URL}}/actions/lookupUserByEmail"
+      headers:
+        - name: X-Hasura-Action-Secret
+          value_from_env: HASURA_ACTION_SECRET
+      timeout: 15
+    permissions:
+      - role: user
+custom_types:
+  enums: []
+  input_objects:
+    - name: TriggerWorkflowRunInput
+    - name: ApproveStepInput
+    - name: LookupUserByEmailInput
+  objects:
+    - name: TriggerWorkflowRunOutput
+    - name: ApproveStepOutput
+    - name: LookupUserByEmailOutput
+  scalars: []

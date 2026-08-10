@@ -1,0 +1,116 @@
+table:
+  schema: public
+  name: workflow_steps
+object_relationships:
+  - name: workflow
+    using:
+      foreign_key_constraint_on: workflow_id
+select_permissions:
+  - role: user
+    permission:
+      columns:
+        - id
+        - workflow_id
+        - position
+        - type
+        - config
+        - created_at
+        - updated_at
+      filter:
+        workflow:
+          organization:
+            members:
+              user_id:
+                _eq: X-Hasura-User-Id
+insert_permissions:
+  - role: user
+    permission:
+      # Owner can add any step type; editor can only add non-sensitive types.
+      # db_write / notify are sensitive and owner-only (spec section 5/17.3/17.4).
+      check:
+        _or:
+          - _and:
+              - type:
+                  _nin: [db_write, notify]
+              - workflow:
+                  organization:
+                    members:
+                      _and:
+                        - user_id:
+                            _eq: X-Hasura-User-Id
+                        - role:
+                            _in: [owner, editor]
+          - _and:
+              - type:
+                  _in: [db_write, notify]
+              - workflow:
+                  organization:
+                    members:
+                      _and:
+                        - user_id:
+                            _eq: X-Hasura-User-Id
+                        - role:
+                            _eq: owner
+      columns:
+        - workflow_id
+        - position
+        - type
+        - config
+update_permissions:
+  - role: user
+    permission:
+      columns:
+        - position
+        - config
+      filter:
+        _or:
+          - _and:
+              - type:
+                  _nin: [db_write, notify]
+              - workflow:
+                  organization:
+                    members:
+                      _and:
+                        - user_id:
+                            _eq: X-Hasura-User-Id
+                        - role:
+                            _in: [owner, editor]
+          - _and:
+              - type:
+                  _in: [db_write, notify]
+              - workflow:
+                  organization:
+                    members:
+                      _and:
+                        - user_id:
+                            _eq: X-Hasura-User-Id
+                        - role:
+                            _eq: owner
+      check: null
+delete_permissions:
+  - role: user
+    permission:
+      filter:
+        _or:
+          - _and:
+              - type:
+                  _nin: [db_write, notify]
+              - workflow:
+                  organization:
+                    members:
+                      _and:
+                        - user_id:
+                            _eq: X-Hasura-User-Id
+                        - role:
+                            _in: [owner, editor]
+          - _and:
+              - type:
+                  _in: [db_write, notify]
+              - workflow:
+                  organization:
+                    members:
+                      _and:
+                        - user_id:
+                            _eq: X-Hasura-User-Id
+                        - role:
+                            _eq: owner

@@ -1,0 +1,22 @@
+{
+  "name": "ai-agent-workflow-builder",
+  "private": true,
+  "version": "0.1.0",
+  "description": "AI Agent Workflow Builder - a small, secure, multi-tenant n8n-style workflow builder with AI/HTTP steps, approval gates and real-time updates.",
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "dev:backend": "npm run dev --workspace backend",
+    "dev:frontend": "npm run dev --workspace frontend",
+    "build:backend": "npm run build --workspace backend",
+    "build:frontend": "npm run build --workspace frontend",
+    "hasura:console": "hasura console --project hasura",
+    "hasura:migrate": "hasura migrate apply --project hasura --database-name default",
+    "hasura:metadata-apply": "hasura metadata apply --project hasura",
+    "hasura:metadata-reload": "hasura metadata reload --project hasura",
+    "stack:up": "docker compose up -d",
+    "stack:down": "docker compose down"
+  }
+}

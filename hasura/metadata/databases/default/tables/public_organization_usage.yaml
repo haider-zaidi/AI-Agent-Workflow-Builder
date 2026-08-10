@@ -1,0 +1,28 @@
+table:
+  schema: public
+  name: organization_usage
+# Aggregation view (spec section 32): quota + monthly/total workflow run
+# counts per organization, computed in Postgres rather than the client.
+object_relationships:
+  - name: organization
+    using:
+      manual_configuration:
+        remote_table:
+          schema: public
+          name: organizations
+        column_mapping:
+          org_id: id
+select_permissions:
+  - role: user
+    permission:
+      columns:
+        - org_id
+        - quota_allowed
+        - quota_used
+        - runs_this_month
+        - runs_total
+      filter:
+        organization:
+          members:
+            user_id:
+              _eq: X-Hasura-User-Id

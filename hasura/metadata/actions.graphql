@@ -1,0 +1,36 @@
+type Mutation {
+  triggerWorkflowRun(input: TriggerWorkflowRunInput!): TriggerWorkflowRunOutput
+  approveStep(input: ApproveStepInput!): ApproveStepOutput
+  lookupUserByEmail(input: LookupUserByEmailInput!): LookupUserByEmailOutput
+}
+
+input TriggerWorkflowRunInput {
+  workflow_id: uuid!
+}
+
+type TriggerWorkflowRunOutput {
+  workflow_run_id: uuid!
+  status: String!
+}
+
+input ApproveStepInput {
+  step_run_id: uuid!
+}
+
+type ApproveStepOutput {
+  step_run_id: uuid!
+  status: String!
+  workflow_run_status: String!
+}
+
+input LookupUserByEmailInput {
+  org_id: uuid!
+  email: String!
+}
+
+type LookupUserByEmailOutput {
+  user_id: uuid
+  display_name: String
+  email: String
+  already_member: Boolean!
+}

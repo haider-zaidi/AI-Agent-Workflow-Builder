@@ -1,0 +1,40 @@
+table:
+  schema: auth
+  name: users
+# auth.users is owned/migrated by the hasura-auth service. We only track a
+# read-only slice of it here so the UI can show member names/emails - a
+# member is only visible to people who share an organization with them,
+# which keeps org member lists isolated the same way workflows are.
+#
+# hasura-auth's own metadata (pushed once, the first time it initializes
+# against a fresh database) exposes this table's columns in camelCase to
+# match its REST API - e.g. `display_name` -> `displayName`. Tracking this
+# table ourselves (needed for the org_memberships relationship below)
+# overwrites that customization unless we replicate it explicitly here, so
+# `hasura metadata apply` stays idempotent regardless of which one ran last.
+configuration:
+  column_config:
+    display_name:
+      custom_name: displayName
+array_relationships:
+  - name: org_memberships
+    using:
+      manual_configuration:
+        remote_table:
+          schema: public
+          name: org_members
+        column_mapping:
+          id: user_id
+select_permissions:
+  - role: user
+    permission:
+      columns:
+        - id
+        - display_name
+        - email
+      filter:
+        org_memberships:
+          organization:
+            members:
+              user_id:
+                _eq: X-Hasura-User-Id

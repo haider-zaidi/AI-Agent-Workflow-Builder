@@ -1,0 +1,109 @@
+name: ai-workflow-builder
+
+# Local replica of the Nhost stack (Postgres + Hasura GraphQL Engine + Hasura Auth).
+# The Nhost CLI has no native Windows binary (WSL2-only), so local dev here runs
+# the same open-source services Nhost runs in the cloud, directly via Docker.
+# Production still targets a real Nhost project (same schema/metadata/auth service).
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: postgres
+    ports:
+      - "55432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  graphql-engine:
+    image: hasura/graphql-engine:v2.38.0
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8081:8080"
+    environment:
+      HASURA_GRAPHQL_DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/postgres
+      HASURA_GRAPHQL_METADATA_DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/postgres
+      HASURA_GRAPHQL_ENABLE_CONSOLE: "true"
+      HASURA_GRAPHQL_DEV_MODE: "true"
+      HASURA_GRAPHQL_ADMIN_SECRET: ${HASURA_GRAPHQL_ADMIN_SECRET:-devsecret}
+      HASURA_GRAPHQL_JWT_SECRET: '{"type":"HS256","key":"${HASURA_GRAPHQL_JWT_SECRET_KEY:-development-only-jwt-secret-key-please-change-32chars}"}'
+      HASURA_GRAPHQL_UNAUTHORIZED_ROLE: public
+      HASURA_GRAPHQL_ENABLED_LOG_TYPES: startup, http-log, webhook-log, websocket-log, query-log
+      # Live query subscriptions (step_runs on the run screen) poll the DB on
+      # this interval rather than pushing per-write; the 1s default makes
+      # quick status transitions feel laggy, so tighten it for a snappier
+      # real-time feel (fine at this app's scale).
+      HASURA_GRAPHQL_LIVE_QUERIES_MULTIPLEXED_REFETCH_INTERVAL: "300"
+      # The backend (Actions/events server) runs on the host via `npm run dev`,
+      # not as a container, so containers reach it through Docker Desktop's
+      # own host.docker.internal proxy. Do NOT add an extra_hosts override
+      # for this hostname - Docker Desktop for Windows/Mac already provides
+      # it automatically, and forcing it to the raw bridge-gateway IP via
+      # `host.docker.internal:host-gateway` made action calls hang
+      # intermittently with zero response bytes ever received.
+      ACTIONS_BASE_URL: http://host.docker.internal:4001
+      HASURA_EVENT_SECRET: ${HASURA_EVENT_SECRET:-devsecret-event}
+      HASURA_ACTION_SECRET: ${HASURA_ACTION_SECRET:-devsecret-action}
+
+  auth:
+    image: nhost/hasura-auth:0.36.1
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      graphql-engine:
+        condition: service_started
+    ports:
+      - "4000:4000"
+    environment:
+      AUTH_HOST: "0.0.0.0"
+      AUTH_PORT: "4000"
+      # Match Nhost cloud's routing shape (.../v1/...) so app config doesn't
+      # need to differ between local docker-compose and a real Nhost project.
+      AUTH_API_PREFIX: "/v1"
+      AUTH_CLIENT_URL: ${FRONTEND_URL:-http://localhost:3000}
+      AUTH_SERVER_URL: http://localhost:4000
+      POSTGRES_CONNECTION_STRING: postgres://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/postgres
+      HASURA_GRAPHQL_DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD:-postgres}@postgres:5432/postgres
+      HASURA_GRAPHQL_GRAPHQL_URL: http://graphql-engine:8080/v1/graphql
+      HASURA_GRAPHQL_ADMIN_SECRET: ${HASURA_GRAPHQL_ADMIN_SECRET:-devsecret}
+      HASURA_GRAPHQL_JWT_SECRET: '{"type":"HS256","key":"${HASURA_GRAPHQL_JWT_SECRET_KEY:-development-only-jwt-secret-key-please-change-32chars}"}'
+      AUTH_EMAIL_SIGNIN_EMAIL_VERIFIED_REQUIRED: "false"
+      AUTH_DISABLE_NEW_USERS: "false"
+      AUTH_ANONYMOUS_USERS_ENABLED: "false"
+      AUTH_SMTP_HOST: mailhog
+      AUTH_SMTP_PORT: "1025"
+      AUTH_SMTP_USER: user
+      AUTH_SMTP_PASS: password
+      AUTH_SMTP_SENDER: auth@ai-workflow-builder.local
+      AUTH_SMTP_SECURE: "false"
+
+  # A containerized `backend` service (Dockerfile in backend/) was tried here
+  # to avoid the host.docker.internal hop entirely, but the build got stuck
+  # on this machine due to heavy resource contention from other, unrelated
+  # Docker workloads (a local k8s cluster, several other projects' DBs) -
+  # unrelated to this project. backend/Dockerfile is still there if you want
+  # to revisit it once Docker isn't under that load; for now the backend
+  # just runs on the host via `npm run dev` (see README).
+
+  mailhog:
+    image: mailhog/mailhog
+    restart: unless-stopped
+    ports:
+      - "8025:8025" # web UI to view dev emails (verification links, etc.)
+      - "1025:1025"
+
+volumes:
+  pgdata:

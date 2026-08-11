@@ -5,34 +5,40 @@
 # headers - including its Content-Length - onto a differently-sized action
 # envelope body can make the backend's body parser wait forever for bytes
 # that never arrive, hanging the request with no error on either side.
+#
+# handler/secret are literal values rather than {{ACTIONS_BASE_URL}}/
+# value_from_env: this Nhost Cloud project's global custom-environment-variable
+# mechanism (nhost.toml [[global.environment]]) could not be gotten to validate
+# under deployment time pressure, so the production backend URL and secrets
+# are inlined directly here instead.
 actions:
   - name: triggerWorkflowRun
     definition:
       kind: synchronous
-      handler: "{{ACTIONS_BASE_URL}}/actions/triggerWorkflowRun"
+      handler: "https://backend-production-2490.up.railway.app/actions/triggerWorkflowRun"
       headers:
         - name: X-Hasura-Action-Secret
-          value_from_env: HASURA_ACTION_SECRET
+          value: 3064bdd012698ef19989ad7d977391d52e4aba9a42a23e48
       timeout: 60
     permissions:
       - role: user
   - name: approveStep
     definition:
       kind: synchronous
-      handler: "{{ACTIONS_BASE_URL}}/actions/approveStep"
+      handler: "https://backend-production-2490.up.railway.app/actions/approveStep"
       headers:
         - name: X-Hasura-Action-Secret
-          value_from_env: HASURA_ACTION_SECRET
+          value: 3064bdd012698ef19989ad7d977391d52e4aba9a42a23e48
       timeout: 30
     permissions:
       - role: user
   - name: lookupUserByEmail
     definition:
       kind: synchronous
-      handler: "{{ACTIONS_BASE_URL}}/actions/lookupUserByEmail"
+      handler: "https://backend-production-2490.up.railway.app/actions/lookupUserByEmail"
       headers:
         - name: X-Hasura-Action-Secret
-          value_from_env: HASURA_ACTION_SECRET
+          value: 3064bdd012698ef19989ad7d977391d52e4aba9a42a23e48
       timeout: 15
     permissions:
       - role: user

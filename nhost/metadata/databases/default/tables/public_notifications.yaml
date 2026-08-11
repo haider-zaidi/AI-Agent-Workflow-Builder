@@ -44,7 +44,7 @@ event_triggers:
       num_retries: 3
       interval_sec: 10
       timeout_sec: 30
-    webhook: "{{ACTIONS_BASE_URL}}/events/notify"
+    webhook: "https://backend-production-2490.up.railway.app/events/notify"
     headers:
       - name: X-Hasura-Event-Secret
-        value_from_env: HASURA_EVENT_SECRET
+        value: eac4eb5c98a4614133703ab097ebe7ae581abf4599c0de6f

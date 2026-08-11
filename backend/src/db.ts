@@ -1,8 +1,16 @@
 import pg from "pg";
 import { env } from "./env.js";
 
+// Managed Postgres providers (Nhost Cloud included) require SSL on public
+// connections and don't advertise it via the connection string itself,
+// which can surface as a confusing "no authentication method is found"
+// error instead of a clear SSL-required one. Local dev's docker-compose
+// Postgres has no SSL support at all, so only enable it for non-local hosts.
+const isLocalHost = /localhost|127\.0\.0\.1/.test(env.databaseUrl);
+
 export const pool = new pg.Pool({
   connectionString: env.databaseUrl,
+  ssl: isLocalHost ? undefined : { rejectUnauthorized: false },
 });
 
 /**

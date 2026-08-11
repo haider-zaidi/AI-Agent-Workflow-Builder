@@ -1,6 +1,5 @@
-# Dev-oriented image: installs deps once, then runs tsx watch against a
-# volume-mounted src/ for hot reload. Not used for the source of truth on
-# `npm run build`/production - see README for deploying backend/ elsewhere.
+# Production image: installs deps, compiles TypeScript at build time (not on
+# every container boot), then runs the compiled output directly.
 FROM node:20-alpine
 
 WORKDIR /app
@@ -10,6 +9,8 @@ RUN npm install
 
 COPY . .
 
+RUN npm run build
+
 EXPOSE 4001
 
-CMD ["npm", "run", "dev"]
+CMD ["npm", "run", "start"]

@@ -1,2 +1,4 @@
-SET transaction_timeout = 0;
-SET check_function_bodies = false;
+-- Intentionally empty. This migration originated as leftover pg_dump session
+-- boilerplate (\restrict/\unrestrict meta-commands, a transaction_timeout
+-- setting only valid on Postgres 17+) with no actual schema content. The real
+-- schema lives entirely in the 1786384927828_app_schema migration.

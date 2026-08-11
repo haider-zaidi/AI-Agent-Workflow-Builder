@@ -134,3 +134,24 @@ array_relationships:
         table:
           name: user_providers
           schema: auth
+  - name: org_memberships
+    using:
+      manual_configuration:
+        remote_table:
+          schema: public
+          name: org_members
+        column_mapping:
+          id: user_id
+select_permissions:
+  - role: user
+    permission:
+      columns:
+        - id
+        - display_name
+        - email
+      filter:
+        org_memberships:
+          organization:
+            members:
+              user_id:
+                _eq: X-Hasura-User-Id
